@@ -1,4 +1,5 @@
+huggingface-hub
 streamlit
 llama-cpp-python
-huggingface-hub
+
 
