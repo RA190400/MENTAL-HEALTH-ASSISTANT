@@ -1,57 +1,39 @@
 import streamlit as st
-from llama_cpp import Llama
-import os
-from huggingface_hub import hf_hub_download
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
 
-# Function to download the model
+# Title and description
+st.title("Mental Health Chatbot")
+st.write("This app uses a fine-tuned Llama-2 model for mental health-related conversations.")
+
+# Load the model and tokenizer
 @st.cache_resource
-def download_model():
-    model_path = hf_hub_download(
-        repo_id="RAKS19/Llama-2-7b-Mental-health-chatbot-finetune2-Q4_K_M-GGUF",
-        filename="llama-2-7b-mental-health-chatbot-finetune2-q4_k_m.gguf"
-    )
-    return model_path
+def load_model_and_tokenizer():
+    tokenizer = AutoTokenizer.from_pretrained("RAKS19/Llama-2-7b-Mental-health-chatbot-finetune2")
+    model = AutoModelForCausalLM.from_pretrained("RAKS19/Llama-2-7b-Mental-health-chatbot-finetune2")
+    return pipeline("text-generation", model=model, tokenizer=tokenizer)
 
-# Load the model
-@st.cache_resource
-def load_model(model_path):
-    return Llama(model_path=model_path)
+chatbot_pipeline = load_model_and_tokenizer()
 
-def main():
-    # Streamlit UI setup
-    st.set_page_config(page_title="Mental Health Chatbot", layout="wide")
-    st.title("Mental Health Chatbot 🤖")
-    st.markdown("""
-    Welcome to the Mental Health Chatbot! Share your thoughts or concerns, and I'll provide empathetic advice.
-    """)
+# User input
+user_input = st.text_input("Enter your message:", "I feel stressed and anxious.")
 
-    # Download and load the model
-    st.info("Loading the model. This may take some time...")
-    model_path = download_model()
-    llm = load_model(model_path)
-    response_guidelines = """
-        You are a psychologist. Respond empathetically in clear, numbered points:
-        1. Show empathy for feelings.
-        2. Provide actionable advice in short points.
-        3. Be clear, concise, and supportive.
-        4. For serious issues, encourage professional help kindly.
-        """
-    prompt = f"{response_guidelines}\n\n"
-    # Input box for user message
-    user_input = st.text_input("Your message:", placeholder="Type your message here...")
-    prompt += f"User: {user_input}\nBot:"
-    print(prompt)
-    if st.button("Send"):
-        if user_input.strip():
-            with st.spinner("The bot is thinking..."):
-                response = llm(prompt, max_tokens=200)
-                bot_response = response["choices"][0]["text"].strip()
-                st.markdown(f"**🤖 Bot:** {bot_response}")
-        else:
-            st.warning("Please enter a message before clicking send!")
+# Generate response
+if st.button("Get Response"):
+    with st.spinner("Thinking..."):
+        response = chatbot_pipeline(user_input, max_length=100, num_return_sequences=1)
+        chatbot_reply = response[0]['generated_text']
+        st.subheader("Chatbot's Response:")
+        st.write(chatbot_reply)
 
-if __name__ == "__main__":
-    main()
+# Instructions for deployment
+st.markdown("---")
+st.markdown("### Deploying on Streamlit Cloud")
+st.markdown("1. Save this script as `app.py`.")
+st.markdown("2. Create a `requirements.txt` file with the following content:")
+st.code("""streamlit\ntransformers""", language="text")
+st.markdown("3. Push your code to a GitHub repository.")
+st.markdown("4. Connect your repository to Streamlit Cloud and deploy the app.")
+
 
 
 
